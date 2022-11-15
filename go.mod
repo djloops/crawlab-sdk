@@ -1,4 +1,4 @@
-module github.com/crawlab-team/crawlab-sdk
+module github.com/djloops/crawlab-sdk
 
 go 1.16
 

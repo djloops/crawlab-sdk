@@ -8,7 +8,9 @@ import (
 	"github.com/crawlab-team/crawlab-sdk/entity"
 	"github.com/crawlab-team/crawlab-sdk/interfaces"
 	"github.com/crawlab-team/go-trace"
+	"golang.org/x/net/proxy"
 	"google.golang.org/grpc"
+	"net"
 	"os"
 	"time"
 )
@@ -78,6 +80,15 @@ func (c *Client) connect() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
+	dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:1080", nil, proxy.Direct)
+	if err != nil {
+		panic(err)
+	}
+
+	dialerNew := func(ctx context.Context, address string) (net.Conn, error) {
+		return dialer.Dial("tcp", address)
+	}
+
 	// connection
 	// TODO: configure dial options
 	var opts []grpc.DialOption
@@ -85,6 +96,7 @@ func (c *Client) connect() (err error) {
 	opts = append(opts, grpc.WithBlock())
 	opts = append(opts, grpc.WithChainUnaryInterceptor(GetAuthTokenUnaryChainInterceptor()))
 	opts = append(opts, grpc.WithChainStreamInterceptor(GetAuthTokenStreamChainInterceptor()))
+	opts = append(opts, grpc.WithContextDialer(dialerNew))
 	c.conn, err = grpc.DialContext(ctx, address, opts...)
 	if err != nil {
 		return trace.TraceError(err)
